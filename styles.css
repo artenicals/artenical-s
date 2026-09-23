@@ -429,7 +429,7 @@ textarea:focus {
   width: min(1120px, calc(100% - 28px));
   margin: 25px auto 0;
   border-radius: 32px;
-  overflow: hidden;
+  overflow: visible;
   background: var(--cream);
   border: 5px solid var(--navy);
   box-shadow: 10px 12px 0 var(--pink), var(--shadow);
@@ -464,7 +464,7 @@ textarea:focus {
 .cover {
   height: 285px;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   background:
     radial-gradient(circle at 7% 24%, var(--yellow) 0 29px, transparent 30px),
     radial-gradient(circle at 20% 78%, var(--pink) 0 42px, transparent 43px),
