@@ -11,8 +11,10 @@
 const SUPABASE_URL = "https://zyqcueyaqknkvmdiahhi.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_EQOxmc4J08cv67p7xFksJQ_Y0iaYRug";
 
-const { createClient } = window.supabase;
-const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+const supabase = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY
+);
 
 const authView = document.getElementById("authView");
 const appView = document.getElementById("appView");
