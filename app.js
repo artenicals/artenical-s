@@ -30,6 +30,11 @@ let currentUser = null;
 let profile = null;
 let selectedFile = null;
 let selectedFileType = null;
+let isPublicView = false;
+let viewedUserId = null;
+
+const params = new URLSearchParams(window.location.search);
+const publicUsername = (params.get("u") || "").replace(/^@/, "").trim().toLowerCase() || null;
 
 const $ = (id) => document.getElementById(id);
 
@@ -80,6 +85,40 @@ function showApp() {
   appView.classList.remove("hidden");
 }
 
+function setPublicMode(enabled) {
+  isPublicView = enabled;
+  const ownerOnly = [
+    "editCoverBtn",
+    "editAvatarBtn",
+    "editProfileBtn",
+    "logoutBtn",
+    "composer",
+    "copyLinkBtn"
+  ];
+
+  ownerOnly.forEach(id => {
+    const el = $(id);
+    if (!el) return;
+    if (id === "composer") {
+      el.classList.toggle("hidden", enabled);
+    } else if (id === "copyLinkBtn") {
+      // el botón de copiar link solo se ve cuando TÚ estás logueada
+      el.classList.toggle("hidden", enabled);
+    } else {
+      el.classList.toggle("hidden", enabled);
+    }
+  });
+
+  const badge = $("publicBadge");
+  if (badge) badge.classList.toggle("hidden", !enabled);
+}
+
+function getPublicProfileUrl() {
+  if (!profile?.username) return window.location.origin + window.location.pathname;
+  const u = profile.username.replace(/^@/, "");
+  return `${window.location.origin}${window.location.pathname}?u=${encodeURIComponent(u)}`;
+}
+
 async function getSignedUrl(path) {
   if (!path) return null;
   const { data, error } = await supabaseClient.storage
@@ -119,6 +158,24 @@ async function loadProfile() {
     profile = data;
   }
 
+  viewedUserId = profile.id;
+  await renderProfile();
+}
+
+async function loadPublicProfile(username) {
+  const { data, error } = await supabaseClient
+    .from("profiles")
+    .select("*")
+    .ilike("username", username)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) {
+    throw new Error("No se encontró este perfil.");
+  }
+
+  profile = data;
+  viewedUserId = data.id;
   await renderProfile();
 }
 
@@ -130,8 +187,13 @@ async function renderProfile() {
   $("profileUsername").textContent = profile.username ? `@${profile.username.replace(/^@/, "")}` : "@yo";
   $("profileBio").textContent = profile.bio || "Escribe algo bonito sobre ti ♡";
   $("avatarImg").src = avatarUrl || placeholderAvatar();
-  $("composerAvatar").src = avatarUrl || placeholderAvatar();
-  $("composerName").textContent = profile.name || "Tú";
+
+  if ($("composerAvatar")) {
+    $("composerAvatar").src = avatarUrl || placeholderAvatar();
+  }
+  if ($("composerName")) {
+    $("composerName").textContent = profile.name || "Tú";
+  }
 
   const cover = $("cover");
   if (coverUrl) {
@@ -151,10 +213,12 @@ async function renderProfile() {
 }
 
 async function loadPosts() {
+  if (!viewedUserId) return;
+
   const { data, error } = await supabaseClient
     .from("posts")
     .select("*")
-    .eq("user_id", currentUser.id)
+    .eq("user_id", viewedUserId)
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -170,7 +234,7 @@ async function loadPosts() {
       <div class="empty-feed">
         <div style="font-size:42px">🌷</div>
         <strong>Aún no hay publicaciones</strong>
-        <div>Escribe algo arriba y empieza tu rinconcito ♡</div>
+        <div>${isPublicView ? "Este espacio todavía está vacío ♡" : "Escribe algo arriba y empieza tu rinconcito ♡"}</div>
       </div>`;
     return;
   }
@@ -183,6 +247,10 @@ async function loadPosts() {
       ? `<img class="post-media" src="${mediaUrl}" alt="Imagen de la publicación" loading="lazy">`
       : "";
 
+    const deleteBtn = isPublicView
+      ? ""
+      : `<button class="delete-post" data-delete="${post.id}">borrar ×</button>`;
+
     return `
       <article class="post">
         <div class="post-head">
@@ -191,7 +259,7 @@ async function loadPosts() {
             <strong>${escapeHtml(profile.name || "Tú")}</strong>
             <small>${formatDate(post.created_at)}</small>
           </div>
-          <button class="delete-post" data-delete="${post.id}">borrar ×</button>
+          ${deleteBtn}
         </div>
         ${post.content ? `<div class="post-body">${escapeHtml(post.content)}</div>` : ""}
         ${media}
@@ -200,9 +268,11 @@ async function loadPosts() {
 
   list.innerHTML = postHtml.join("");
 
-  list.querySelectorAll("[data-delete]").forEach(btn => {
-    btn.addEventListener("click", () => deletePost(btn.dataset.delete));
-  });
+  if (!isPublicView) {
+    list.querySelectorAll("[data-delete]").forEach(btn => {
+      btn.addEventListener("click", () => deletePost(btn.dataset.delete));
+    });
+  }
 }
 
 async function uploadFile(file, folder) {
@@ -229,6 +299,8 @@ async function deleteStorageFile(path) {
 }
 
 async function publishPost() {
+  if (isPublicView || !currentUser) return;
+
   const content = $("postText").value;
   const btn = $("publishBtn");
 
@@ -272,6 +344,7 @@ async function publishPost() {
 }
 
 async function deletePost(id) {
+  if (isPublicView || !currentUser) return;
   if (!confirm("¿Borrar esta publicación?")) return;
 
   const { data, error: findError } = await supabaseClient
@@ -318,6 +391,8 @@ function clearSelectedMedia() {
 }
 
 async function updateProfile(data) {
+  if (isPublicView || !currentUser) return;
+
   const { data: updated, error } = await supabaseClient
     .from("profiles")
     .update(data)
@@ -331,7 +406,7 @@ async function updateProfile(data) {
 }
 
 async function changeAvatar(file) {
-  if (!file) return;
+  if (!file || isPublicView || !currentUser) return;
   try {
     const oldPath = profile.avatar_path;
     const newPath = await uploadFile(file, "avatar");
@@ -343,7 +418,7 @@ async function changeAvatar(file) {
 }
 
 async function changeCover(file) {
-  if (!file) return;
+  if (!file || isPublicView || !currentUser) return;
   try {
     const oldPath = profile.cover_path;
     const newPath = await uploadFile(file, "cover");
@@ -355,11 +430,23 @@ async function changeCover(file) {
 }
 
 async function openProfileEditor() {
+  if (isPublicView || !currentUser) return;
   $("editName").value = profile.name || "";
   $("editUsername").value = profile.username || "";
   $("editBio").value = profile.bio || "";
   $("profileMessage").textContent = "";
   profileDialog.showModal();
+}
+
+async function copyPublicLink() {
+  const url = getPublicProfileUrl();
+  try {
+    await navigator.clipboard.writeText(url);
+    setMessage($("publishMessage") || $("authMessage"), "Link copiado ♡", true);
+    alert("Link de tu perfil copiado:\n" + url);
+  } catch {
+    prompt("Copia este link de tu perfil:", url);
+  }
 }
 
 loginForm.addEventListener("submit", async (event) => {
@@ -433,6 +520,10 @@ $("removeMedia").addEventListener("click", clearSelectedMedia);
 
 $("editProfileBtn").addEventListener("click", openProfileEditor);
 
+if ($("copyLinkBtn")) {
+  $("copyLinkBtn").addEventListener("click", copyPublicLink);
+}
+
 profileForm.addEventListener("submit", async (event) => {
   event.preventDefault();
 
@@ -467,29 +558,58 @@ $("coverFileInput").addEventListener("change", async (event) => {
   event.target.value = "";
 });
 
+async function enterPrivateMode() {
+  setPublicMode(false);
+  try {
+    await loadProfile();
+    showApp();
+    await loadPosts();
+  } catch (error) {
+    console.error(error);
+    setMessage(authMessage, error.message || "No se pudo cargar tu espacio.");
+    showAuth();
+  }
+}
+
+async function enterPublicMode(username) {
+  setPublicMode(true);
+  try {
+    await loadPublicProfile(username);
+    showApp();
+    await loadPosts();
+  } catch (error) {
+    console.error(error);
+    setMessage(authMessage, error.message || "No se pudo cargar este perfil.");
+    showAuth();
+  }
+}
+
 supabaseClient.auth.onAuthStateChange(async (event, session) => {
   if (session?.user) {
     currentUser = session.user;
-
-    // Solo se permite el acceso a cuentas que tengan fila en profiles.
-    // La primera cuenta crea su fila automáticamente.
-    try {
-      await loadProfile();
-      showApp();
-      await loadPosts();
-    } catch (error) {
-      console.error(error);
-      setMessage(authMessage, error.message || "No se pudo cargar tu espacio.");
-      showAuth();
-    }
+    // Si entraste con ?u=... pero estás logueada, ves TU espacio (no el público)
+    await enterPrivateMode();
   } else {
     currentUser = null;
     profile = null;
-    showAuth();
+    viewedUserId = null;
+
+    if (publicUsername) {
+      await enterPublicMode(publicUsername);
+    } else {
+      setPublicMode(false);
+      showAuth();
+    }
   }
 });
 
 (async function init() {
   const { data } = await supabaseClient.auth.getSession();
-  if (!data.session) showAuth();
+  if (!data.session) {
+    if (publicUsername) {
+      await enterPublicMode(publicUsername);
+    } else {
+      showAuth();
+    }
+  }
 })();
