@@ -71,6 +71,15 @@ function formatDate(dateString) {
   }).format(new Date(dateString));
 }
 
+function setPublicMode(enabled) {
+  if ($("profileName")) $("profileName").textContent = "…";
+  if ($("profileUsername")) $("profileUsername").textContent = "";
+  if ($("profileBio")) $("profileBio").textContent = "Cargando…";
+  if ($("composerName")) $("composerName").textContent = "…";
+  if ($("postCount")) $("postCount").textContent = "—";
+  if ($("joinedDate")) $("joinedDate").textContent = "—";
+}
+
 function placeholderAvatar() {
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="400" height="400">
@@ -571,6 +580,7 @@ $("coverFileInput").addEventListener("change", async (event) => {
 
 async function enterPrivateMode() {
   setPublicMode(false);
+  setProfileLoading();
   try {
     await loadProfile();
     showApp();
@@ -584,6 +594,7 @@ async function enterPrivateMode() {
 
 async function enterPublicMode(username) {
   setPublicMode(true);
+  setProfileLoading();
   try {
     await loadPublicProfile(username);
     showApp();
@@ -594,7 +605,6 @@ async function enterPublicMode(username) {
     showAuth();
   }
 }
-
 supabaseClient.auth.onAuthStateChange(async (event, session) => {
   if (session?.user) {
     currentUser = session.user;
