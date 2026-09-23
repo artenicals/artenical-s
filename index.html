@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mi espacio ♡</title>
+  <meta name="description" content="Red social personal privada." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="bg-doodle doodle-1">♡</div>
+  <div class="bg-doodle doodle-2">✿</div>
+  <div class="bg-doodle doodle-3">♡</div>
+
+  <main id="authView" class="auth-screen">
+    <section class="auth-card">
+      <div class="brand-pill">
+        <span class="brand-dot"></span>
+        <span>my little space</span>
+        <span class="brand-heart">♡</span>
+      </div>
+      <div class="auth-cat">૮ ˶ᵔ ᵕ ᵔ˶ ა</div>
+      <h1>mi rinconcito</h1>
+      <p class="subtitle">Un espacio privado para guardar tus momentos, fotos, GIFs y pensamientos.</p>
+
+      <form id="loginForm" class="auth-form">
+        <label>Correo
+          <input id="loginEmail" type="email" autocomplete="email" required placeholder="tu@email.com">
+        </label>
+        <label>Contraseña
+          <input id="loginPassword" type="password" autocomplete="current-password" required placeholder="••••••••">
+        </label>
+        <button class="primary-btn" type="submit">Entrar ♡</button>
+      </form>
+
+      <div id="signupBox" class="signup-box">
+        <p>¿Todavía no tienes tu cuenta?</p>
+        <button id="showSignup" class="text-btn" type="button">Crear mi cuenta</button>
+      </div>
+
+      <form id="signupForm" class="auth-form hidden">
+        <label>Correo
+          <input id="signupEmail" type="email" autocomplete="email" placeholder="tu@email.com">
+        </label>
+        <label>Contraseña
+          <input id="signupPassword" type="password" autocomplete="new-password" minlength="6" placeholder="mínimo 6 caracteres">
+        </label>
+        <button class="primary-btn" type="submit">Crear cuenta ✿</button>
+        <button id="cancelSignup" class="text-btn" type="button">Volver al inicio</button>
+      </form>
+
+      <p id="authMessage" class="message"></p>
+      <p class="tiny-note">Después de crear tu cuenta, desactiva los nuevos registros en Supabase para que solo tú puedas entrar.</p>
+    </section>
+  </main>
+
+  <main id="appView" class="app hidden">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="mini-brand"><span>♡</span> my little space</div>
+        <div class="online-pill"><i></i> is online...</div>
+        <button id="logoutBtn" class="icon-btn" title="Cerrar sesión">↪</button>
+      </div>
+    </header>
+
+    <section class="profile-shell">
+      <div id="cover" class="cover">
+        <button id="editCoverBtn" class="cover-edit">✿ cambiar portada</button>
+      </div>
+
+      <div class="profile-info">
+        <div class="avatar-wrap">
+          <img id="avatarImg" class="avatar" alt="Foto de perfil">
+          <button id="editAvatarBtn" class="avatar-edit" title="Cambiar foto">+</button>
+        </div>
+
+        <div class="profile-copy">
+          <div class="name-row">
+            <h1 id="profileName">Tu nombre</h1>
+            <span class="sparkle">✦</span>
+          </div>
+          <p id="profileUsername">@tú</p>
+          <p id="profileBio" class="bio">Escribe algo bonito sobre ti ♡</p>
+        </div>
+
+        <button id="editProfileBtn" class="outline-btn">editar perfil</button>
+      </div>
+    </section>
+
+    <section class="content-grid">
+      <aside class="side-card">
+        <div class="side-title">♡ about me</div>
+        <div class="stat-line"><span>posts</span><strong id="postCount">0</strong></div>
+        <div class="stat-line"><span>joined</span><strong id="joinedDate">—</strong></div>
+        <div class="sticker-row">
+          <span>🌷</span><span>🫧</span><span>🎀</span><span>⭐</span>
+        </div>
+      </aside>
+
+      <section class="feed">
+        <div class="composer card">
+          <div class="composer-head">
+            <img id="composerAvatar" class="small-avatar" alt="">
+            <div>
+              <strong id="composerName">Tú</strong>
+              <span> · comparte algo...</span>
+            </div>
+          </div>
+
+          <textarea id="postText" rows="5" placeholder="¿Qué quieres guardar aquí? Puedes escribir todo lo que quieras ♡"></textarea>
+
+          <div id="selectedMedia" class="selected-media hidden">
+            <img id="selectedPreview" alt="Vista previa">
+            <button id="removeMedia" type="button" class="remove-media">×</button>
+          </div>
+
+          <div class="composer-actions">
+            <div class="media-actions">
+              <label class="media-btn">
+                <input id="photoInput" type="file" accept="image/*" hidden>
+                📷 foto
+              </label>
+              <label class="media-btn gif-btn">
+                <input id="gifInput" type="file" accept="image/gif" hidden>
+                GIF
+              </label>
+            </div>
+            <button id="publishBtn" class="primary-btn publish-btn">publicar ♡</button>
+          </div>
+          <div id="publishMessage" class="message"></div>
+        </div>
+
+        <div id="feedList"></div>
+      </section>
+    </section>
+  </main>
+
+  <dialog id="profileDialog" class="modal">
+    <form id="profileForm" method="dialog" class="modal-card">
+      <button type="button" class="close-btn" data-close>×</button>
+      <div class="modal-title">editar mi perfil ✿</div>
+
+      <label>Nombre
+        <input id="editName" type="text" maxlength="80" required>
+      </label>
+      <label>Usuario
+        <input id="editUsername" type="text" maxlength="40" placeholder="ximena">
+      </label>
+      <label>Bio
+        <textarea id="editBio" rows="4" maxlength="500" placeholder="Algo sobre ti..."></textarea>
+      </label>
+
+      <button class="primary-btn" type="submit">guardar cambios ♡</button>
+      <p id="profileMessage" class="message"></p>
+    </form>
+  </dialog>
+
+  <input id="avatarFileInput" type="file" accept="image/*" hidden>
+  <input id="coverFileInput" type="file" accept="image/*" hidden>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js"></script>
+</body>
+</html>
