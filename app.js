@@ -2,10 +2,6 @@
   ============================================================
   CONFIGURACIÓN
   ============================================================
-  1. Crea un proyecto en Supabase.
-  2. Copia Project URL y Publishable key desde Settings > API.
-  3. Pégalos aquí.
-  4. Ejecuta supabase.sql en el SQL Editor.
 */
 
 const SUPABASE_URL = "https://zyqcueyaqknkvmdiahhi.supabase.co";
@@ -36,11 +32,9 @@ let viewedUserId = null;
 const params = new URLSearchParams(window.location.search);
 const publicUsername = (params.get("u") || "").replace(/^@/, "").trim().toLowerCase() || null;
 
-// Evita el flash de la pantalla de login al abrir el link público
 if (publicUsername) {
   authView.classList.add("hidden");
   appView.classList.remove("hidden");
-  // Opcional: poner un texto de carga mientras llega el perfil
   const list = document.getElementById("feedList");
   if (list) {
     list.innerHTML = `<div class="empty-feed"><div style="font-size:42px">♡</div><strong>Cargando...</strong></div>`;
@@ -50,6 +44,7 @@ if (publicUsername) {
 const $ = (id) => document.getElementById(id);
 
 function setMessage(element, text, ok = false) {
+  if (!element) return;
   element.textContent = text || "";
   element.style.color = ok ? "#6a9a70" : "#b55385";
 }
@@ -69,15 +64,6 @@ function formatDate(dateString) {
     dateStyle: "medium",
     timeStyle: "short"
   }).format(new Date(dateString));
-}
-
-function setPublicMode(enabled) {
-  if ($("profileName")) $("profileName").textContent = "…";
-  if ($("profileUsername")) $("profileUsername").textContent = "";
-  if ($("profileBio")) $("profileBio").textContent = "Cargando…";
-  if ($("composerName")) $("composerName").textContent = "…";
-  if ($("postCount")) $("postCount").textContent = "—";
-  if ($("joinedDate")) $("joinedDate").textContent = "—";
 }
 
 function placeholderAvatar() {
@@ -105,6 +91,15 @@ function showApp() {
   appView.classList.remove("hidden");
 }
 
+function setProfileLoading() {
+  if ($("profileName")) $("profileName").textContent = "…";
+  if ($("profileUsername")) $("profileUsername").textContent = "";
+  if ($("profileBio")) $("profileBio").textContent = "Cargando…";
+  if ($("composerName")) $("composerName").textContent = "…";
+  if ($("postCount")) $("postCount").textContent = "—";
+  if ($("joinedDate")) $("joinedDate").textContent = "—";
+}
+
 function setPublicMode(enabled) {
   isPublicView = enabled;
   const ownerOnly = [
@@ -119,18 +114,15 @@ function setPublicMode(enabled) {
   ownerOnly.forEach(id => {
     const el = $(id);
     if (!el) return;
-    if (id === "composer") {
-      el.classList.toggle("hidden", enabled);
-    } else if (id === "copyLinkBtn") {
-      // el botón de copiar link solo se ve cuando TÚ estás logueada
-      el.classList.toggle("hidden", enabled);
-    } else {
-      el.classList.toggle("hidden", enabled);
-    }
+    el.classList.toggle("hidden", enabled);
   });
 
   const badge = $("publicBadge");
   if (badge) badge.classList.toggle("hidden", !enabled);
+
+  // copyLinkBtn solo visible cuando NO es vista pública (dueña logueada)
+  const copyBtn = $("copyLinkBtn");
+  if (copyBtn) copyBtn.classList.toggle("hidden", enabled);
 }
 
 function getPublicProfileUrl() {
@@ -204,7 +196,9 @@ async function renderProfile() {
   const coverUrl = await getSignedUrl(profile.cover_path);
 
   $("profileName").textContent = profile.name || "Mi nombre";
-  $("profileUsername").textContent = profile.username ? `@${profile.username.replace(/^@/, "")}` : "@yo";
+  $("profileUsername").textContent = profile.username
+    ? `@${profile.username.replace(/^@/, "")}`
+    : "@yo";
   $("profileBio").textContent = profile.bio || "Escribe algo bonito sobre ti ♡";
   $("avatarImg").src = avatarUrl || placeholderAvatar();
 
@@ -224,7 +218,7 @@ async function renderProfile() {
     cover.style.backgroundImage = "";
   }
 
-  if (profile.created_at) {
+  if (profile.created_at && $("joinedDate")) {
     $("joinedDate").textContent = new Intl.DateTimeFormat("es-MX", {
       month: "short",
       year: "numeric"
@@ -246,8 +240,9 @@ async function loadPosts() {
     return;
   }
 
-  $("postCount").textContent = data.length;
+  if ($("postCount")) $("postCount").textContent = data.length;
   const list = $("feedList");
+  if (!list) return;
 
   if (!data.length) {
     list.innerHTML = `
@@ -395,7 +390,6 @@ async function deletePost(id) {
 function previewFile(file, type) {
   selectedFile = file;
   selectedFileType = type;
-
   const url = URL.createObjectURL(file);
   $("selectedPreview").src = url;
   $("selectedMedia").classList.remove("hidden");
@@ -404,10 +398,10 @@ function previewFile(file, type) {
 function clearSelectedMedia() {
   selectedFile = null;
   selectedFileType = null;
-  $("photoInput").value = "";
-  $("gifInput").value = "";
-  $("selectedPreview").src = "";
-  $("selectedMedia").classList.add("hidden");
+  if ($("photoInput")) $("photoInput").value = "";
+  if ($("gifInput")) $("gifInput").value = "";
+  if ($("selectedPreview")) $("selectedPreview").src = "";
+  if ($("selectedMedia")) $("selectedMedia").classList.add("hidden");
 }
 
 async function updateProfile(data) {
@@ -462,121 +456,11 @@ async function copyPublicLink() {
   const url = getPublicProfileUrl();
   try {
     await navigator.clipboard.writeText(url);
-    setMessage($("publishMessage") || $("authMessage"), "Link copiado ♡", true);
     alert("Link de tu perfil copiado:\n" + url);
   } catch {
     prompt("Copia este link de tu perfil:", url);
   }
 }
-
-loginForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  setMessage(authMessage, "entrando...");
-
-  const email = $("loginEmail").value.trim();
-  const password = $("loginPassword").value;
-
-  const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-
-  if (error) {
-    setMessage(authMessage, error.message);
-    return;
-  }
-  setMessage(authMessage, "");
-});
-
-signupForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  setMessage(authMessage, "creando cuenta...");
-
-  const email = $("signupEmail").value.trim();
-  const password = $("signupPassword").value;
-
-  const { error } = await supabaseClient.auth.signUp({
-    email,
-    password,
-    options: {
-      data: { name: "Mi nombre", username: "yo" }
-    }
-  });
-
-  if (error) {
-    setMessage(authMessage, error.message);
-    return;
-  }
-
-  setMessage(authMessage, "Cuenta creada. Revisa tu correo si Supabase solicita confirmación.", true);
-});
-
-$("showSignup").addEventListener("click", () => {
-  signupBox.classList.add("hidden");
-  loginForm.classList.add("hidden");
-  signupForm.classList.remove("hidden");
-});
-
-$("cancelSignup").addEventListener("click", () => {
-  signupForm.classList.add("hidden");
-  loginForm.classList.remove("hidden");
-  signupBox.classList.remove("hidden");
-});
-
-$("logoutBtn").addEventListener("click", async () => {
-  await supabaseClient.auth.signOut();
-});
-
-$("publishBtn").addEventListener("click", publishPost);
-
-$("photoInput").addEventListener("change", (event) => {
-  const file = event.target.files?.[0];
-  if (file) previewFile(file, "image");
-});
-
-$("gifInput").addEventListener("change", (event) => {
-  const file = event.target.files?.[0];
-  if (file) previewFile(file, "gif");
-});
-
-$("removeMedia").addEventListener("click", clearSelectedMedia);
-
-$("editProfileBtn").addEventListener("click", openProfileEditor);
-
-if ($("copyLinkBtn")) {
-  $("copyLinkBtn").addEventListener("click", copyPublicLink);
-}
-
-profileForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-
-  try {
-    await updateProfile({
-      name: $("editName").value.trim(),
-      username: $("editUsername").value.trim().replace(/^@/, ""),
-      bio: $("editBio").value.trim()
-    });
-
-    setMessage($("profileMessage"), "Guardado ♡", true);
-    setTimeout(() => profileDialog.close(), 450);
-  } catch (error) {
-    setMessage($("profileMessage"), error.message);
-  }
-});
-
-document.querySelectorAll("[data-close]").forEach(btn => {
-  btn.addEventListener("click", () => profileDialog.close());
-});
-
-$("editAvatarBtn").addEventListener("click", () => $("avatarFileInput").click());
-$("editCoverBtn").addEventListener("click", () => $("coverFileInput").click());
-
-$("avatarFileInput").addEventListener("change", async (event) => {
-  await changeAvatar(event.target.files?.[0]);
-  event.target.value = "";
-});
-
-$("coverFileInput").addEventListener("change", async (event) => {
-  await changeCover(event.target.files?.[0]);
-  event.target.value = "";
-});
 
 async function enterPrivateMode() {
   setPublicMode(false);
@@ -605,10 +489,150 @@ async function enterPublicMode(username) {
     showAuth();
   }
 }
+
+// Eventos (con chequeo por si falta algún elemento en el HTML)
+if (loginForm) {
+  loginForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    setMessage(authMessage, "entrando...");
+
+    const email = $("loginEmail").value.trim();
+    const password = $("loginPassword").value;
+
+    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      setMessage(authMessage, error.message);
+      return;
+    }
+    setMessage(authMessage, "");
+  });
+}
+
+if (signupForm) {
+  signupForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    setMessage(authMessage, "creando cuenta...");
+
+    const email = $("signupEmail").value.trim();
+    const password = $("signupPassword").value;
+
+    const { error } = await supabaseClient.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { name: "Mi nombre", username: "yo" }
+      }
+    });
+
+    if (error) {
+      setMessage(authMessage, error.message);
+      return;
+    }
+
+    setMessage(authMessage, "Cuenta creada. Revisa tu correo si Supabase solicita confirmación.", true);
+  });
+}
+
+if ($("showSignup")) {
+  $("showSignup").addEventListener("click", () => {
+    signupBox.classList.add("hidden");
+    loginForm.classList.add("hidden");
+    signupForm.classList.remove("hidden");
+  });
+}
+
+if ($("cancelSignup")) {
+  $("cancelSignup").addEventListener("click", () => {
+    signupForm.classList.add("hidden");
+    loginForm.classList.remove("hidden");
+    signupBox.classList.remove("hidden");
+  });
+}
+
+if ($("logoutBtn")) {
+  $("logoutBtn").addEventListener("click", async () => {
+    await supabaseClient.auth.signOut();
+  });
+}
+
+if ($("publishBtn")) {
+  $("publishBtn").addEventListener("click", publishPost);
+}
+
+if ($("photoInput")) {
+  $("photoInput").addEventListener("change", (event) => {
+    const file = event.target.files?.[0];
+    if (file) previewFile(file, "image");
+  });
+}
+
+if ($("gifInput")) {
+  $("gifInput").addEventListener("change", (event) => {
+    const file = event.target.files?.[0];
+    if (file) previewFile(file, "gif");
+  });
+}
+
+if ($("removeMedia")) {
+  $("removeMedia").addEventListener("click", clearSelectedMedia);
+}
+
+if ($("editProfileBtn")) {
+  $("editProfileBtn").addEventListener("click", openProfileEditor);
+}
+
+if ($("copyLinkBtn")) {
+  $("copyLinkBtn").addEventListener("click", copyPublicLink);
+}
+
+if (profileForm) {
+  profileForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    try {
+      await updateProfile({
+        name: $("editName").value.trim(),
+        username: $("editUsername").value.trim().replace(/^@/, ""),
+        bio: $("editBio").value.trim()
+      });
+
+      setMessage($("profileMessage"), "Guardado ♡", true);
+      setTimeout(() => profileDialog.close(), 450);
+    } catch (error) {
+      setMessage($("profileMessage"), error.message);
+    }
+  });
+}
+
+document.querySelectorAll("[data-close]").forEach(btn => {
+  btn.addEventListener("click", () => profileDialog.close());
+});
+
+if ($("editAvatarBtn")) {
+  $("editAvatarBtn").addEventListener("click", () => $("avatarFileInput").click());
+}
+if ($("editCoverBtn")) {
+  $("editCoverBtn").addEventListener("click", () => $("coverFileInput").click());
+}
+
+if ($("avatarFileInput")) {
+  $("avatarFileInput").addEventListener("change", async (event) => {
+    await changeAvatar(event.target.files?.[0]);
+    event.target.value = "";
+  });
+}
+
+if ($("coverFileInput")) {
+  $("coverFileInput").addEventListener("change", async (event) => {
+    await changeCover(event.target.files?.[0]);
+    event.target.value = "";
+  });
+}
+
 supabaseClient.auth.onAuthStateChange(async (event, session) => {
   if (session?.user) {
     currentUser = session.user;
-    // Si entraste con ?u=... pero estás logueada, ves TU espacio (no el público)
     await enterPrivateMode();
   } else {
     currentUser = null;
