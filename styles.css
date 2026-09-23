@@ -90,15 +90,15 @@ button { cursor: pointer; }
 
 .auth-cat {
   margin: 20px auto 0;
-  width: 100px;
-  height: 74px;
-  display: grid;
-  place-items: center;
-  background: var(--pink-3);
-  border-radius: 48% 48% 44% 44%;
-  color: #686171;
-  font-size: 25px;
-  border: 5px solid white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.auth-cat img {
+  width: 100px; /* Tamaño de tu PNG */
+  height: auto;
+  display: block;
 }
 
 h1, h2, .modal-title, .mini-brand, .side-title {
