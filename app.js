@@ -11,7 +11,7 @@
 const SUPABASE_URL = "https://zyqcueyaqknkvmdiahhi.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_EQOxmc4J08cv67p7xFksJQ_Y0iaYRug";
 
-const supabase = window.supabase.createClient(
+const supabaseClient = window.supabase.createClient(
   SUPABASE_URL,
   SUPABASE_PUBLISHABLE_KEY
 );
@@ -82,7 +82,7 @@ function showApp() {
 
 async function getSignedUrl(path) {
   if (!path) return null;
-  const { data, error } = await supabase.storage
+  const { data, error } = await supabaseClient.storage
     .from("media")
     .createSignedUrl(path, 60 * 60);
   if (error) {
@@ -93,7 +93,7 @@ async function getSignedUrl(path) {
 }
 
 async function loadProfile() {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from("profiles")
     .select("*")
     .eq("id", currentUser.id)
@@ -102,7 +102,7 @@ async function loadProfile() {
   if (error) throw error;
 
   if (!data) {
-    const { data: created, error: insertError } = await supabase
+    const { data: created, error: insertError } = await supabaseClient
       .from("profiles")
       .insert({
         id: currentUser.id,
@@ -151,7 +151,7 @@ async function renderProfile() {
 }
 
 async function loadPosts() {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from("posts")
     .select("*")
     .eq("user_id", currentUser.id)
@@ -210,7 +210,7 @@ async function uploadFile(file, folder) {
   const fileName = `${crypto.randomUUID()}.${extension}`;
   const path = `${currentUser.id}/${folder}/${fileName}`;
 
-  const { error } = await supabase.storage
+  const { error } = await supabaseClient.storage
     .from("media")
     .upload(path, file, {
       cacheControl: "3600",
@@ -224,7 +224,7 @@ async function uploadFile(file, folder) {
 
 async function deleteStorageFile(path) {
   if (!path) return;
-  const { error } = await supabase.storage.from("media").remove([path]);
+  const { error } = await supabaseClient.storage.from("media").remove([path]);
   if (error) console.warn("No se pudo borrar el archivo:", error);
 }
 
@@ -246,7 +246,7 @@ async function publishPost() {
       mediaPath = await uploadFile(selectedFile, "posts");
     }
 
-    const { error } = await supabase.from("posts").insert({
+    const { error } = await supabaseClient.from("posts").insert({
       user_id: currentUser.id,
       content,
       media_path: mediaPath,
@@ -274,7 +274,7 @@ async function publishPost() {
 async function deletePost(id) {
   if (!confirm("¿Borrar esta publicación?")) return;
 
-  const { data, error: findError } = await supabase
+  const { data, error: findError } = await supabaseClient
     .from("posts")
     .select("media_path")
     .eq("id", id)
@@ -285,7 +285,7 @@ async function deletePost(id) {
     return;
   }
 
-  const { error } = await supabase
+  const { error } = await supabaseClient
     .from("posts")
     .delete()
     .eq("id", id);
@@ -318,7 +318,7 @@ function clearSelectedMedia() {
 }
 
 async function updateProfile(data) {
-  const { data: updated, error } = await supabase
+  const { data: updated, error } = await supabaseClient
     .from("profiles")
     .update(data)
     .eq("id", currentUser.id)
@@ -369,7 +369,7 @@ loginForm.addEventListener("submit", async (event) => {
   const email = $("loginEmail").value.trim();
   const password = $("loginPassword").value;
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
 
   if (error) {
     setMessage(authMessage, error.message);
@@ -385,7 +385,7 @@ signupForm.addEventListener("submit", async (event) => {
   const email = $("signupEmail").value.trim();
   const password = $("signupPassword").value;
 
-  const { error } = await supabase.auth.signUp({
+  const { error } = await supabaseClient.auth.signUp({
     email,
     password,
     options: {
@@ -414,7 +414,7 @@ $("cancelSignup").addEventListener("click", () => {
 });
 
 $("logoutBtn").addEventListener("click", async () => {
-  await supabase.auth.signOut();
+  await supabaseClient.auth.signOut();
 });
 
 $("publishBtn").addEventListener("click", publishPost);
@@ -467,7 +467,7 @@ $("coverFileInput").addEventListener("change", async (event) => {
   event.target.value = "";
 });
 
-supabase.auth.onAuthStateChange(async (event, session) => {
+supabaseClient.auth.onAuthStateChange(async (event, session) => {
   if (session?.user) {
     currentUser = session.user;
 
@@ -490,6 +490,6 @@ supabase.auth.onAuthStateChange(async (event, session) => {
 });
 
 (async function init() {
-  const { data } = await supabase.auth.getSession();
+  const { data } = await supabaseClient.auth.getSession();
   if (!data.session) showAuth();
 })();
