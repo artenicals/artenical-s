@@ -10,6 +10,46 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css" />
+
+  <script>
+    (function () {
+      try {
+        var params = new URLSearchParams(window.location.search);
+        var u = params.get("u");
+        if (u && u.trim()) {
+          document.documentElement.classList.add("is-public");
+        }
+
+        // Si ya hay sesión de Supabase en el teléfono, no mostrar login
+        var keys = Object.keys(localStorage);
+        var hasSession = keys.some(function (k) {
+          return k.indexOf("-auth-token") !== -1 || k.indexOf("supabase.auth") !== -1;
+        });
+        if (hasSession) {
+          document.documentElement.classList.add("has-session");
+        }
+      } catch (e) {}
+    })();
+  </script>
+  <style>
+    /* Link público sin sesión */
+    html.is-public #authView {
+      display: none !important;
+    }
+    html.is-public #appView,
+    html.is-public #appView.hidden {
+      display: block !important;
+    }
+
+    /* Teléfono / navegador con sesión iniciada */
+    html.has-session #authView {
+      display: none !important;
+    }
+    html.has-session #appView,
+    html.has-session #appView.hidden {
+      display: block !important;
+    }
+  </style>
 </head>
 <body>
   <div class="bg-doodle doodle-1">♡</div>
