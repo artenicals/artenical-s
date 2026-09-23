@@ -36,6 +36,17 @@ let viewedUserId = null;
 const params = new URLSearchParams(window.location.search);
 const publicUsername = (params.get("u") || "").replace(/^@/, "").trim().toLowerCase() || null;
 
+// Evita el flash de la pantalla de login al abrir el link público
+if (publicUsername) {
+  authView.classList.add("hidden");
+  appView.classList.remove("hidden");
+  // Opcional: poner un texto de carga mientras llega el perfil
+  const list = document.getElementById("feedList");
+  if (list) {
+    list.innerHTML = `<div class="empty-feed"><div style="font-size:42px">♡</div><strong>Cargando...</strong></div>`;
+  }
+}
+
 const $ = (id) => document.getElementById(id);
 
 function setMessage(element, text, ok = false) {
