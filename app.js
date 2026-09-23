@@ -8,8 +8,8 @@
   4. Ejecuta supabase.sql en el SQL Editor.
 */
 
-const SUPABASE_URL = "PEGA_AQUI_TU_PROJECT_URL";
-const SUPABASE_PUBLISHABLE_KEY = "PEGA_AQUI_TU_PUBLISHABLE_KEY";
+const SUPABASE_URL = "https://zyqcueyaqknkvmdiahhi.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_EQOxmc4J08cv67p7xFksJQ_Y0iaYRug";
 
 const { createClient } = window.supabase;
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
